@@ -110,4 +110,28 @@ public final class MuseumConstants {
     public static final String ACTION_MATERIAL_RETURN = "MATERIAL_RETURN";
     public static final String ACTION_MATERIAL_REVIEW = "MATERIAL_REVIEW";
     public static final String ACTION_MATERIAL_REVIEW_CONFIRM = "MATERIAL_REVIEW_CONFIRM";
+
+    // --------------------------------------------------------------------
+    // museum-4 修复方案会签
+    // --------------------------------------------------------------------
+
+    /** 方案版本状态：会签中 / 已退回（只读） / 会签通过 */
+    public static final String PLAN_SIGNING = "SIGNING";
+    public static final String PLAN_RETURNED = "RETURNED";
+    public static final String PLAN_APPROVED = "APPROVED";
+
+    /** 会签角色：馆内专家 / 外部专家 / 保管人员 */
+    public static final String SIGN_ROLE_INTERNAL = "INTERNAL";
+    public static final String SIGN_ROLE_EXTERNAL = "EXTERNAL";
+    public static final String SIGN_ROLE_CUSTODIAN = "CUSTODIAN";
+
+    /** 会签决定：同意 / 退回 */
+    public static final String SIGN_DECISION_APPROVE = "APPROVE";
+    public static final String SIGN_DECISION_RETURN = "RETURN";
+
+    /** 台账流水动作：方案提交会签 / 会签签署 / 方案退回 / 会签通过 */
+    public static final String ACTION_PLAN_SUBMIT = "PLAN_SUBMIT";
+    public static final String ACTION_PLAN_SIGN = "PLAN_SIGN";
+    public static final String ACTION_PLAN_RETURN = "PLAN_RETURN";
+    public static final String ACTION_PLAN_APPROVE = "PLAN_APPROVE";
 }

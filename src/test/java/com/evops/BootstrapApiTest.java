@@ -92,6 +92,7 @@ class BootstrapApiTest {
         dossier.get("ledger").forEach(e -> actions.add(e.get("action").asText()));
         assertEquals(Arrays.asList(
                 "INTAKE", "LOAN_OUT", "RETURN",
+                "PLAN_SUBMIT", "PLAN_SIGN", "PLAN_SIGN", "PLAN_APPROVE",
                 "REPAIR_START",
                 "MATERIAL_ISSUE", "MATERIAL_REVIEW", "MATERIAL_RETURN",
                 "REPAIR_STAGE", "REPAIR_STAGE",

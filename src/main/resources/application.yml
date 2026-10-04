@@ -46,6 +46,13 @@ museum:
     # 差异复核定时扫描间隔（毫秒）；重启后启动即补扫一次，扫描按明细行幂等
     review-scan-interval-ms: 60000
     review-scan-on-startup: true
+  # 修复方案会签（museum-4）
+  countersign:
+    # 按文物风险（保存等级）配置馆内专家/外部专家/保管人员的会签顺序
+    sign-order:
+      ONE: EXTERNAL,INTERNAL,CUSTODIAN
+      TWO: INTERNAL,EXTERNAL,CUSTODIAN
+      THREE: INTERNAL,CUSTODIAN,EXTERNAL
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

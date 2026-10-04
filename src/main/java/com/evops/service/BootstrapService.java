@@ -10,6 +10,8 @@ import com.evops.dto.MaterialInboundRequest;
 import com.evops.dto.MaterialReturnRequest;
 import com.evops.dto.MaterialUsageRequest;
 import com.evops.dto.PhotoDto;
+import com.evops.dto.PlanSignRequest;
+import com.evops.dto.PlanVersionCreateRequest;
 import com.evops.dto.ProjectCreateRequest;
 import com.evops.dto.RelicCreateRequest;
 import com.evops.dto.ReturnRequest;
@@ -64,6 +66,7 @@ public class BootstrapService {
     private final IntakeService intakeService;
     private final LoanService loanService;
     private final RepairService repairService;
+    private final RepairPlanService planService;
     private final MaterialAccountingService materialService;
     private final MaterialReviewScheduler reviewScheduler;
     private final TransactionTemplate transactionTemplate;
@@ -73,6 +76,7 @@ public class BootstrapService {
                             IntakeService intakeService,
                             LoanService loanService,
                             RepairService repairService,
+                            RepairPlanService planService,
                             MaterialAccountingService materialService,
                             MaterialReviewScheduler reviewScheduler,
                             PlatformTransactionManager transactionManager) {
@@ -81,6 +85,7 @@ public class BootstrapService {
         this.intakeService = intakeService;
         this.loanService = loanService;
         this.repairService = repairService;
+        this.planService = planService;
         this.materialService = materialService;
         this.reviewScheduler = reviewScheduler;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -177,10 +182,27 @@ public class BootstrapService {
         projectReq.setExpectedEndDate(now.plusDays(7).toLocalDate());
         RepairProject project = repairService.createProject(projectReq);
 
-        // 5. 开工、阶段结果、完成、验收
+        // 5. 方案会签：一级文物按配置顺序 外部专家 -> 馆内专家 -> 保管人员 依次签署，
+        //    全部通过后才允许开工生成施工任务
+        PlanVersionCreateRequest planReq = new PlanVersionCreateRequest();
+        planReq.setPlanContent(projectReq.getPlan());
+        planReq.setInternalExpert("馆内修复专家·张");
+        planReq.setExternalExpert("院外文保专家·李");
+        planReq.setCustodian("库房保管员·王");
+        planReq.setSubmittedBy("修复项目负责人");
+        com.evops.entity.RepairPlanVersion planVersion =
+                planService.createVersion(project.getId(), planReq);
+        planService.sign(planVersion.getId(), planSign("EXTERNAL", "院外文保专家·李",
+                "裂隙走向已核，方案可行", "reports/WW-2026-0001/外部鉴定.pdf"));
+        planService.sign(planVersion.getId(), planSign("INTERNAL", "馆内修复专家·张",
+                "工艺路线与馆藏修复规范一致", "reports/WW-2026-0001/工艺评估.pdf"));
+        planService.sign(planVersion.getId(), planSign("CUSTODIAN", "库房保管员·王",
+                "修复期间库位与安保已落实", null));
+
+        // 6. 开工、阶段结果、完成、验收
         repairService.startRepair(project.getId());
 
-        // 5.1 修复材料：颜料/黏合剂/保护剂按批号入库 -> 工单领用 -> 差异复核 -> 退料
+        // 6.1 修复材料：颜料/黏合剂/保护剂按批号入库 -> 工单领用 -> 差异复核 -> 退料
         seedMaterialAccounting(relic, project, now);
 
         StageRequest stage1 = new StageRequest();
@@ -203,7 +225,7 @@ public class BootstrapService {
         acceptReq.setOpinion("补配部位牢固、随色协调，符合验收要求，同意结项。");
         repairService.accept(project.getId(), acceptReq);
 
-        // 6. 上锁：固定单行，抢插失败将抛 DuplicateKeyException 并整体回滚
+        // 7. 上锁：固定单行，抢插失败将抛 DuplicateKeyException 并整体回滚
         BootstrapLock newLock = new BootstrapLock();
         newLock.setId(MuseumConstants.BOOTSTRAP_LOCK_ID);
         newLock.setRelicId(relic.getId());
@@ -274,6 +296,16 @@ public class BootstrapService {
         req.setSupplier(supplier);
         req.setInboundBy("库管员");
         materialService.inbound(req);
+    }
+
+    private PlanSignRequest planSign(String role, String name, String opinion, String attachment) {
+        PlanSignRequest req = new PlanSignRequest();
+        req.setSignerRole(role);
+        req.setSignerName(name);
+        req.setDecision(MuseumConstants.SIGN_DECISION_APPROVE);
+        req.setOpinion(opinion);
+        req.setAttachment(attachment);
+        return req;
     }
 
     private UsageLineRequest usageLine(String batchNo, String plan, String actual,

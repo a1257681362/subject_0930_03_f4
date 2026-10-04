@@ -59,6 +59,8 @@ class MaterialAccountingTest {
                         + "\"applyPart\":\"x\",\"operator\":\"修复师甲\"}]")),
                 "不能领用材料");
 
+        // 方案会签完成后才允许开工（museum-4：会签是生成施工任务的前置闸门）
+        countersign(projectId);
         postEmpty("/api/repair-projects/" + projectId + "/start");
 
         // ---- 三类材料目录 ----
@@ -229,6 +231,20 @@ class MaterialAccountingTest {
 
     private long createRelic(String body) throws Exception {
         return dataOf(postJson("/api/relics", body)).get("id").asLong();
+    }
+
+    /** 二级文物会签顺序：馆内专家 -> 外部专家 -> 保管人员，全部同意方可开工 */
+    private void countersign(long projectId) throws Exception {
+        long versionId = dataOf(postOk("/api/repair-projects/" + projectId + "/plan-versions", "{"
+                + "\"planContent\":\"裂隙补配、随色封护\",\"internalExpert\":\"馆内专家甲\","
+                + "\"externalExpert\":\"外部专家乙\",\"custodian\":\"保管员丙\","
+                + "\"submittedBy\":\"项目负责人\"}")).get("version").get("id").asLong();
+        postOk("/api/plan-versions/" + versionId + "/sign",
+                "{\"signerRole\":\"INTERNAL\",\"signerName\":\"馆内专家甲\",\"decision\":\"APPROVE\"}");
+        postOk("/api/plan-versions/" + versionId + "/sign",
+                "{\"signerRole\":\"EXTERNAL\",\"signerName\":\"外部专家乙\",\"decision\":\"APPROVE\"}");
+        postOk("/api/plan-versions/" + versionId + "/sign",
+                "{\"signerRole\":\"CUSTODIAN\",\"signerName\":\"保管员丙\",\"decision\":\"APPROVE\"}");
     }
 
     private long createMaterial(String body) throws Exception {

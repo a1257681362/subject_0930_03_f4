@@ -7,10 +7,12 @@ import com.evops.dto.StageRequest;
 import com.evops.entity.Relic;
 import com.evops.entity.RelicLoan;
 import com.evops.entity.RepairAcceptance;
+import com.evops.entity.RepairPlanVersion;
 import com.evops.entity.RepairProject;
 import com.evops.entity.RepairStage;
 import com.evops.mapper.RelicLoanMapper;
 import com.evops.mapper.RepairAcceptanceMapper;
+import com.evops.mapper.RepairPlanVersionMapper;
 import com.evops.mapper.RepairProjectMapper;
 import com.evops.mapper.RepairStageMapper;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,7 @@ public class RepairService {
     private final RepairProjectMapper projectMapper;
     private final RepairStageMapper stageMapper;
     private final RepairAcceptanceMapper acceptanceMapper;
+    private final RepairPlanVersionMapper planVersionMapper;
     private final RelicLoanMapper loanMapper;
     private final RelicService relicService;
     private final LedgerService ledgerService;
@@ -45,12 +48,14 @@ public class RepairService {
     public RepairService(RepairProjectMapper projectMapper,
                          RepairStageMapper stageMapper,
                          RepairAcceptanceMapper acceptanceMapper,
+                         RepairPlanVersionMapper planVersionMapper,
                          RelicLoanMapper loanMapper,
                          RelicService relicService,
                          LedgerService ledgerService) {
         this.projectMapper = projectMapper;
         this.stageMapper = stageMapper;
         this.acceptanceMapper = acceptanceMapper;
+        this.planVersionMapper = planVersionMapper;
         this.loanMapper = loanMapper;
         this.relicService = relicService;
         this.ledgerService = ledgerService;
@@ -78,7 +83,7 @@ public class RepairService {
         return project;
     }
 
-    /** 开工：PLANNED -> REPAIRING；文物借出未还时不允许开工 */
+    /** 开工：PLANNED -> REPAIRING；文物借出未还时不允许开工；方案会签通过才允许生成施工任务 */
     @Transactional
     public RepairProject startRepair(Long projectId) {
         RepairProject project = requireProject(projectId);
@@ -90,6 +95,16 @@ public class RepairService {
                 .eq(RelicLoan::getStatus, LOAN_LENT));
         if (openLoans != null && openLoans > 0) {
             throw new IllegalArgumentException("文物尚在外借，不能开始修复");
+        }
+        RepairPlanVersion latestPlan = planVersionMapper.selectList(
+                        new LambdaQueryWrapper<RepairPlanVersion>()
+                                .eq(RepairPlanVersion::getProjectId, projectId)
+                                .orderByDesc(RepairPlanVersion::getVersionNo)
+                                .last("LIMIT 1"))
+                .stream().findFirst().orElse(null);
+        if (latestPlan == null || !PLAN_APPROVED.equals(latestPlan.getStatus())) {
+            throw new IllegalArgumentException("方案会签未完成，不能生成施工任务（开工）: "
+                    + project.getProjectNo());
         }
         project.setStatus(PROJECT_REPAIRING);
         if (project.getStartDate() == null) {

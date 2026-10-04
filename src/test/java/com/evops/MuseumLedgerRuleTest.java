@@ -104,6 +104,9 @@ class MuseumLedgerRuleTest {
                 + "\"stageName\":\"清洗\",\"stageResult\":\"已清洗\"}"), "不能登记阶段结果");
 
         // 开工后，未登记阶段结果不能完成修复
+        // （museum-4：开工前须先完成方案会签，否则不能生成施工任务）
+        expectFail(postEmpty("/api/repair-projects/" + projectId + "/start"), "会签");
+        countersign(projectId);
         expectOk(postEmpty("/api/repair-projects/" + projectId + "/start"));
         expectFail(postEmpty("/api/repair-projects/" + projectId + "/finish"), "阶段结果");
 
@@ -150,6 +153,23 @@ class MuseumLedgerRuleTest {
 
     private long createRelic(String body) throws Exception {
         return dataOf(postJson("/api/relics", body)).get("id").asLong();
+    }
+
+    /** 二级文物会签顺序：馆内专家 -> 外部专家 -> 保管人员，全部同意方可开工 */
+    private void countersign(long projectId) throws Exception {
+        long versionId = dataOf(postJson("/api/repair-projects/" + projectId + "/plan-versions", "{"
+                + "\"planContent\":\"清洗加固\",\"internalExpert\":\"馆内专家甲\","
+                + "\"externalExpert\":\"外部专家乙\",\"custodian\":\"保管员丙\","
+                + "\"submittedBy\":\"项目负责人\"}")).get("version").get("id").asLong();
+        signPlan(versionId, "INTERNAL", "馆内专家甲");
+        signPlan(versionId, "EXTERNAL", "外部专家乙");
+        signPlan(versionId, "CUSTODIAN", "保管员丙");
+    }
+
+    private void signPlan(long versionId, String role, String name) throws Exception {
+        expectOk(postJson("/api/plan-versions/" + versionId + "/sign", "{"
+                + "\"signerRole\":\"" + role + "\",\"signerName\":\"" + name + "\","
+                + "\"decision\":\"APPROVE\"}"));
     }
 
     private MvcResult postJson(String uri, String body) throws Exception {

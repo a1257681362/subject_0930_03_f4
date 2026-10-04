@@ -153,6 +153,7 @@ class ImageArchiveTest {
 
         // ---- 不同修复阶段必须形成新版本；同一阶段补拍沿用版本 ----
         long projectId = createProject(relicId);
+        countersign(projectId);
         postEmpty("/api/repair-projects/" + projectId + "/start");
         long stage1Id = createStage(projectId, "清洗", "表面清理");
         long stage2Id = createStage(projectId, "补全", "残缺补全");
@@ -294,6 +295,20 @@ class ImageArchiveTest {
         return postJson("/api/repair-projects/" + projectId + "/stages", "{"
                 + "\"stageName\":\"" + name + "\",\"stageResult\":\"" + result
                 + "\",\"operator\":\"修复师甲\"}").get("data").get("id").asLong();
+    }
+
+    /** 一级文物会签顺序：外部专家 -> 馆内专家 -> 保管人员，全部同意方可开工 */
+    private void countersign(long projectId) throws Exception {
+        long versionId = postJson("/api/repair-projects/" + projectId + "/plan-versions", "{"
+                + "\"planContent\":\"清洗补全\",\"internalExpert\":\"馆内专家甲\","
+                + "\"externalExpert\":\"外部专家乙\",\"custodian\":\"保管员丙\","
+                + "\"submittedBy\":\"项目负责人\"}").get("data").get("version").get("id").asLong();
+        postJson("/api/plan-versions/" + versionId + "/sign",
+                "{\"signerRole\":\"EXTERNAL\",\"signerName\":\"外部专家乙\",\"decision\":\"APPROVE\"}");
+        postJson("/api/plan-versions/" + versionId + "/sign",
+                "{\"signerRole\":\"INTERNAL\",\"signerName\":\"馆内专家甲\",\"decision\":\"APPROVE\"}");
+        postJson("/api/plan-versions/" + versionId + "/sign",
+                "{\"signerRole\":\"CUSTODIAN\",\"signerName\":\"保管员丙\",\"decision\":\"APPROVE\"}");
     }
 
     private JsonNode upload(String uri, List<Spec> specs) throws Exception {
