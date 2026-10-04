@@ -110,4 +110,34 @@ public final class MuseumConstants {
     public static final String ACTION_MATERIAL_RETURN = "MATERIAL_RETURN";
     public static final String ACTION_MATERIAL_REVIEW = "MATERIAL_REVIEW";
     public static final String ACTION_MATERIAL_REVIEW_CONFIRM = "MATERIAL_REVIEW_CONFIRM";
+
+    // --------------------------------------------------------------------
+    // museum-4 文物修复方案会签
+    // --------------------------------------------------------------------
+
+    /** 方案版本状态：会签中 / 会签通过 / 已退回（只读） / 已被新版本取代（只读） */
+    public static final String PLAN_SIGNING = "SIGNING";
+    public static final String PLAN_APPROVED = "APPROVED";
+    public static final String PLAN_RETURNED = "RETURNED";
+    public static final String PLAN_SUPERSEDED = "SUPERSEDED";
+
+    /** 会签环节状态：待签署 / 已签署 / 已退回 */
+    public static final String STEP_PENDING = "PENDING";
+    public static final String STEP_SIGNED = "SIGNED";
+    public static final String STEP_RETURNED = "RETURNED";
+
+    /** 会签角色：馆内专家 / 外部专家（保管人员沿用 museum-2 的 ROLE_CURATOR） */
+    public static final String ROLE_INTERNAL_EXPERT = "INTERNAL_EXPERT";
+    public static final String ROLE_EXTERNAL_EXPERT = "EXTERNAL_EXPERT";
+
+    /** 施工任务状态：已生成 */
+    public static final String TASK_CREATED = "CREATED";
+
+    /** 台账流水动作：提交会签 / 会签签署 / 会签退回 / 会签通过 / 版本被取代 / 生成施工任务 */
+    public static final String ACTION_PLAN_SUBMIT = "PLAN_SUBMIT";
+    public static final String ACTION_PLAN_SIGN = "PLAN_SIGN";
+    public static final String ACTION_PLAN_RETURN = "PLAN_RETURN";
+    public static final String ACTION_PLAN_APPROVE = "PLAN_APPROVE";
+    public static final String ACTION_PLAN_SUPERSEDE = "PLAN_SUPERSEDE";
+    public static final String ACTION_TASK_CREATE = "TASK_CREATE";
 }
